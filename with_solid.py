@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Dict
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, declarative_base, Session
 
 # SQLAlchemy setup
 DATABASE_URL = "postgresql://postgres:admin@localhost:5433/rockpaperscissors"
@@ -102,20 +101,34 @@ class Game:
             return None
 
 class Leaderboard:
-    def __init__(self):
-        self.scores: Dict[str, int] = {}
+    def __init__(self, db: Session):
+        self.db = db
 
     def update(self, winner_name: Optional[str]):
         if winner_name:
-            if winner_name in self.scores:
-                self.scores[winner_name] += 1
+            player_record = self.db.query(PlayerRecord).filter(PlayerRecord.name == winner_name).first()
+            leaderboard_entry = self.db.query(LeaderboardRecord).filter(LeaderboardRecord.player_id == player_record.id).first()
+            if leaderboard_entry:
+                leaderboard_entry.score += 1
             else:
-                self.scores[winner_name] = 1
+                leaderboard_entry = LeaderboardRecord(player_id=player_record.id, score=1)
+                self.db.add(leaderboard_entry)
+            self.db.commit()
+
+    def ensure_player_exists(self, player_name: str):
+        player_record = self.db.query(PlayerRecord).filter(PlayerRecord.name == player_name).first()
+        if player_record:
+            if not self.db.query(LeaderboardRecord).filter(LeaderboardRecord.player_id == player_record.id).first():
+                leaderboard_entry = LeaderboardRecord(player_id=player_record.id, score=0)
+                self.db.add(leaderboard_entry)
+                self.db.commit()
 
     def display(self):
+        leaderboard_entries = self.db.query(LeaderboardRecord).order_by(LeaderboardRecord.score.desc()).all()
         print("\nLeaderboard:")
-        for player, score in sorted(self.scores.items(), key=lambda x: x[1], reverse=True):
-            print(f"{player}: {score} points")
+        for entry in leaderboard_entries:
+            player = self.db.query(PlayerRecord).filter(PlayerRecord.id == entry.player_id).first()
+            print(f"{player.name}: {entry.score} points")
 
 class RockPaperScissorsGame:
     def __init__(self):
