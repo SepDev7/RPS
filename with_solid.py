@@ -1,5 +1,14 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Dict
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+# SQLAlchemy setup
+DATABASE_URL = "postgresql://postgres:postgres@localhost/rockpaperscissors"
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
 class Player(ABC):
     def __init__(self, name: str):
