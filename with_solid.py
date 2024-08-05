@@ -112,6 +112,16 @@ class Leaderboard:
 class RockPaperScissorsGame:
     def __init__(self):
         self.leaderboard = Leaderboard()
+        self.db = SessionLocal()
+
+    def get_or_create_player(self, name: str) -> PlayerRecord:
+        player = self.db.query(PlayerRecord).filter(PlayerRecord.name == name).first()
+        if not player:
+            player = PlayerRecord(name=name)
+            self.db.add(player)
+            self.db.commit()
+            self.db.refresh(player)
+        return player
 
     def start(self):
         while True:
@@ -121,9 +131,26 @@ class RockPaperScissorsGame:
             player1 = HumanPlayer(player1_name)
             player2 = HumanPlayer(player2_name)
 
+            player1_record = self.get_or_create_player(player1_name)
+            player2_record = self.get_or_create_player(player2_name)
+
             game = Game(player1, player2)
-            winner = game.play()
-            self.leaderboard.update(winner)
+            winner_name = game.play()
+
+            if winner_name:
+                winner_record = self.get_or_create_player(winner_name)
+            else:
+                winner_record = None
+
+            game_record = GameRecord(
+                player1_id=player1_record.id,
+                player2_id=player2_record.id,
+                winner_id=winner_record.id if winner_record else None
+            )
+            self.db.add(game_record)
+            self.db.commit()
+
+            self.leaderboard.update(winner_name)
             self.leaderboard.display()
 
             new_session = input("Do you want to start a new session? (yes/no): ").lower()
