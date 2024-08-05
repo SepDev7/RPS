@@ -26,6 +26,14 @@ class GameRecord(Base):
     player2 = relationship("PlayerRecord", foreign_keys=[player2_id])
     winner = relationship("PlayerRecord", foreign_keys=[winner_id])
 
+class LeaderboardRecord(Base):
+    __tablename__ = "leaderboard"
+    id = Column(Integer, primary_key=True, index=True)
+    player_id = Column(Integer, ForeignKey("players.id"), unique=True)
+    score = Column(Integer, default=0)
+
+    player = relationship("PlayerRecord")
+
 Base.metadata.create_all(bind=engine)
 
 class Player(ABC):
