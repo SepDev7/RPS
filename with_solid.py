@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Dict
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy.orm import sessionmaker, relationship
 
 # SQLAlchemy setup
 DATABASE_URL = "postgresql://postgres:postgres@localhost/rockpaperscissors"
@@ -15,6 +15,19 @@ class PlayerRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     
+class GameRecord(Base):
+    __tablename__ = "games"
+    id = Column(Integer, primary_key=True, index=True)
+    player1_id = Column(Integer, ForeignKey("players.id"))
+    player2_id = Column(Integer, ForeignKey("players.id"))
+    winner_id = Column(Integer, ForeignKey("players.id"))
+    
+    player1 = relationship("PlayerRecord", foreign_keys=[player1_id])
+    player2 = relationship("PlayerRecord", foreign_keys=[player2_id])
+    winner = relationship("PlayerRecord", foreign_keys=[winner_id])
+
+Base.metadata.create_all(bind=engine)
+
 class Player(ABC):
     def __init__(self, name: str):
         self.name = name
