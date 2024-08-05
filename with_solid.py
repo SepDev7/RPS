@@ -132,8 +132,8 @@ class Leaderboard:
 
 class RockPaperScissorsGame:
     def __init__(self):
-        self.leaderboard = Leaderboard()
         self.db = SessionLocal()
+        self.leaderboard = Leaderboard(self.db)
 
     def get_or_create_player(self, name: str) -> PlayerRecord:
         player = self.db.query(PlayerRecord).filter(PlayerRecord.name == name).first()
@@ -142,6 +142,7 @@ class RockPaperScissorsGame:
             self.db.add(player)
             self.db.commit()
             self.db.refresh(player)
+        self.leaderboard.ensure_player_exists(name)
         return player
 
     def start(self):
